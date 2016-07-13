@@ -1,79 +1,184 @@
 [ -z "$PS1" ] && return
- 
-# source du bashrc système
-if [ -f /etc/bashrc ]; then
-        . /etc/bashrc
-fi
- 
-# source du fichier des alias personnalisé
+
+# Affichage du prompt personnalisé sur 2 lignes, avec couleur root & user
+PS1="\n\$(if [[ \$EUID == 0 ]]; then echo \"\[\033[0;31m\]\"; else echo \"\[\033[0;33m\]\"; fi)\342\226\210\342\226\210 [ \u@\h ] [ \w ] [ \t ]\n\[\033[0m\]\342\226\210\342\226\210 "
+
+# Source des différents profils
+# source alias définitions
 if [ -f ~/.bash_aliases ]; then
         . ~/.bash_aliases
 fi
- 
+
+# source /etc/bashrc
+if [ -f /etc/bashrc ]; then
+        . /etc/bashrc
+fi
+
 # Meilleure completion du bash
-# Installer le package bash-completion
 if [ -f /etc/bash_completion ] && ! shopt -oq posix; then
         . /etc/bash_completion
 fi
- 
-# n'affiche pas les commandes tapées en double dans l'historique.
+
+# source admin bash.profile
+if [ -f /admin/etc/bash.profile ]; then
+        . /admin/etc/bash.profile
+fi
+
+# Gestion de l'historique
+# Permet de ne pas afficher les commandes en double et les commandes vides
 export HISTCONTROL=ignoredups:ignorespace
-# nombre de lignes dans l'historique, par session bash
+# Lignes de l'historique par session bash
 export HISTSIZE=5000
-# nombre de lignes conservées dans l'historique
+# Lignes de l'historique conservées
 export HISTFILESIZE=20000
-# ajout de la date et de l'heure dans l'historique
+# Format de l'historique : jour/mois/année - heure :
 export HISTTIMEFORMAT="%d/%m/%Y - %T : "
-# supporte des terminaux redimensionnables (xterm et screen -r)
+# Support des terminaux redimensionnables (xterm et screen -r)
 shopt -s checkwinsize
- 
-# lesspipe.sh is an input filter for the pager less as described in less's man page.
+# Ajoute au fichier, ne l'écrase pas
+shopt -s histappend
+PROMPT_COMMAND='history -a'
+# Active ctrl+S pour la navigation dans l'historique (avec crtl+R)
+stty -ixon
+# Log les commandes sudo
+# export HISTFILE=/var/log/sudousers_historylogs/root_history-$(who am i | awk '{print $1}';exit)
+
+# Colorisation des manpages
+man() {
+    env \
+    LESS_TERMCAP_mb=$'\E[01;31m' \
+    LESS_TERMCAP_md=$'\E[01;31m' \
+    LESS_TERMCAP_me=$'\E[0m' \
+    LESS_TERMCAP_se=$'\E[0m' \
+    LESS_TERMCAP_so=$'\E[01;31m' \
+    LESS_TERMCAP_ue=$'\E[0m' \
+    LESS_TERMCAP_us=$'\E[01;32m' \
+    man "$@"
+}
+
+
+# rendre "less" plus convivial pour les fichiers d'entrés non-textuels, voir lesspipe(1)
 [ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
- 
-# ajout de la colorisation syntaxique
+
+# Afficher les couleurs pour certaines commandes
+# dircolors est un theme "dark solarized"
 if [ -x /usr/bin/dircolors ]; then
         test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
 fi
- 
-# Mes alias BASHRC
-alias rm='rm -i'
-alias cp='cp -i'
-alias mv='mv -i'
-alias ls='ls --color=auto'
-alias dir='dir --color=auto'
-alias vdir='vdir --color=auto'
+
+# Alias BASHRC
+alias rm='rm -i' # -i -> demande de confirmation
+alias cp='cp -i' # -i -> demande de confirmation
+alias mv='mv -i' # -i -> demande de confirmation
+
+# Alias LS
+alias ls='ls -aFh --color=auto' # add colors and file type extensions
+alias la='ls -Alh --color=auto' # show hidden files
+alias ll='ls -alFh --color=auto' # ls + la
+alias lx='ls -lXBh --color=auto' # sort by extension
+alias lk='ls -lSrh --color=auto' # sort by size
+alias lc='ls -lcrh --color=auto' # sort by change time
+alias lu='ls -lurh --color=auto' # sort by access time
+alias lart='ls -larth --color=auto' #s sort by modify time
+alias lr='ls -lRh --color=auto' # recursive ls
+
+# Alias GREP
 alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
-alias ll='ls -alFh --color=auto'
-alias la='ls -A --color=auto'
-alias l='ls -CF --color=auto'
-alias miseajour='sudo apt-get update && sudo apt-get upgrade && sudo apt-get dist-upgrade && sudo  apt-get autoclean && sudo apt-get clean && sudo apt-get autoremove'
-alias saidar='sudo saidar -c -d 1'
-alias htop='sudo htop'
-alias calendrier='var=$(cal); echo "${var/$(date +%-d)/$(echo -e "\033[1;31m$(date +%-d)\033[0m")}"'
+
+# Alias DU
 alias du='du -h --max-depth=1'
+alias du+='du -h --max-depth=1 | sort -h -r | less'
 alias dusort='du -x --block-size=1048576 | sort -nr'
 alias df='df -h'
-alias passgen='pwgen  -y -n  20 1'
- 
- 
+
+# Si la distribution est debian-like
+# alias miseajour='sudo apt-get update && sudo apt-get upgrade && sudo apt-get dist-upgrade && sudo  apt-get autoclean && sudo apt-get clean && sudo apt-get autoremove'
+# Si la distribution est redhat-like
+# alias miseajour='sudo yum update'
+
+# Alias APP
+command -v htop  >/dev/null 2>&1 && alias htop='sudo htop'
+# Améliore diff avec des couleurs
+command -v colordiff  >/dev/null 2>&1 && alias diff='colordiff'
+
 # Mes exports
 export EDITOR=vim
 export VISUAL=vim
- 
-# Affichage du prompt
-PS1="\n\$(if [[ \$EUID == 0 ]]; then echo \"\[\033[0;31m\]\"; else echo \"\[\033[0;33m\]\"; fi)\342\226\210\342\226\210 [ \u@\h ] [ \w ] [ \t ]\n\[\033[0m\]\342\226\210\342\226\210 "
- 
+
+
+# Mes Fonctions
+
 # lecture colorée de logs
-# installer le package ccze
-logview()
-{
-        ccze -A < $1 | less -R
+function logview() {
+        command -v ccze  >/dev/null 2>&1 && ccze -A < $1 | less -R
 }
- 
+
 # lecture colorée de logs en direct logview()
-logtail()
-{
-        tail -f $1 | ccze
+function logtail() {
+        command -v ccze  >/dev/null 2>&1 && tail -f $1 | ccze
+}
+
+# Extracts any archive(s) (if unp isn't installed)
+function extract () {
+        for archive in $*; do
+                if [ -f $archive ] ; then
+                        case $archive in
+                                *.tar.bz2)   tar xvjf $archive    ;;
+                                *.tar.gz)    tar xvzf $archive    ;;
+                                *.bz2)       bunzip2 $archive     ;;
+                                *.rar)       rar x $archive       ;;
+                                *.gz)        gunzip $archive      ;;
+                                *.tar)       tar xvf $archive     ;;
+                                *.tbz2)      tar xvjf $archive    ;;
+                                *.tgz)       tar xvzf $archive    ;;
+                                *.zip)       unzip $archive       ;;
+                                *.Z)         uncompress $archive  ;;
+                                *.7z)        7za x $archive        ;;
+                                *)           echo "don't know how to extract '$archive'..." ;;
+                        esac
+                else
+                        echo "'$archive' is not a valid file!"
+                fi
+        done
+}
+
+# Copy file with a progress bar
+function cpp() {
+        set -e
+        strace -q -ewrite cp -- "${1}" "${2}" 2>&1 \
+        | awk '{
+        count += $NF
+        if (count % 10 == 0) {
+                percent = count / total_size * 100
+                printf "%3d%% [", percent
+                for (i=0;i<=percent;i++)
+                        printf "="
+                        printf ">"
+                        for (i=percent;i<100;i++)
+                                printf " "
+                                printf "]\r"
+                        }
+                }
+        END { print "" }' total_size=$(stat -c '%s' "${1}") count=0
+}
+
+# Copie automatique
+function copyssh() {
+    KEY="$HOME/.ssh/id_rsa.pub"
+    if [ ! -f $KEY ];then
+        echo "Private key not found at $KEY"
+        echo "* please create it with "ssh-keygen -t rsa" *"
+        echo "* to login to the remote host without a password, don't give the key you create with ssh-keygen a password! *"
+    else
+        if [ -z $1 ];then
+            echo "Please specify user@host.tld as the first switch to this script"
+        else
+            HOSTNAME=$1
+            echo "Putting your key on $HOSTNAME ... "
+            ssh-copy-id -i $KEY $SUDO_USER@$HOSTNAME
+            echo "Done !"
+        fi
+    fi
 }
