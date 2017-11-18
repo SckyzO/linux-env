@@ -64,6 +64,8 @@ man() {
 # dircolors est un theme "dark solarized"
 if [ -x /usr/bin/dircolors ]; then
         test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+else
+        echo "Please : Install dircolors package"
 fi
 
 # Alias BASHRC
@@ -144,41 +146,3 @@ function extract () {
         done
 }
 
-# Copy file with a progress bar
-function cpp() {
-        set -e
-        strace -q -ewrite cp -- "${1}" "${2}" 2>&1 \
-        | awk '{
-        count += $NF
-        if (count % 10 == 0) {
-                percent = count / total_size * 100
-                printf "%3d%% [", percent
-                for (i=0;i<=percent;i++)
-                        printf "="
-                        printf ">"
-                        for (i=percent;i<100;i++)
-                                printf " "
-                                printf "]\r"
-                        }
-                }
-        END { print "" }' total_size=$(stat -c '%s' "${1}") count=0
-}
-
-# Copie automatique
-function copyssh() {
-    KEY="$HOME/.ssh/id_rsa.pub"
-    if [ ! -f $KEY ];then
-        echo "Private key not found at $KEY"
-        echo "* please create it with "ssh-keygen -t rsa" *"
-        echo "* to login to the remote host without a password, don't give the key you create with ssh-keygen a password! *"
-    else
-        if [ -z $1 ];then
-            echo "Please specify user@host.tld as the first switch to this script"
-        else
-            HOSTNAME=$1
-            echo "Putting your key on $HOSTNAME ... "
-            ssh-copy-id -i $KEY $SUDO_USER@$HOSTNAME
-            echo "Done !"
-        fi
-    fi
-}
