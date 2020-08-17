@@ -1,0 +1,7 @@
+[http]
+	sslVerify = false
+[https]
+	sslVerify = false
+[user]
+	name = Tom
+	email = Mr.Robot@allsafe-security.com
